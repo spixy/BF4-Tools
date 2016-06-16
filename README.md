@@ -2,7 +2,7 @@
 Battlefield 4 advanced configuration
 
 ### Download
-[v1.0.1 (rar)](https://github.com/spixy/BF4-Tools/releases/download/1.0.1/BF4_Tools.rar)
+[v1.1 (rar)](https://github.com/spixy/BF4-Tools/releases/download/1.1/BFtools.exe)
 
 
 ### Screenshot
