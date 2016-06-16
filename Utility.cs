@@ -8,6 +8,10 @@ namespace BFtools
 {
     public static class Utility
     {
+		public static string ToInt(this bool value)
+		{
+			return value ? "1" : "0";
+		}
 
         public static RegistryKey GetRegistryKey()
         {
@@ -20,7 +24,7 @@ namespace BFtools
             return key;
         }
 
-        public static void KilProcesses(IEnumerable<Process> processes, bool waitForExit = false)
+        public static void KillProcesses(IEnumerable<Process> processes, bool waitForExit = false)
         {
             foreach (var process in processes)
             {
@@ -40,7 +44,7 @@ namespace BFtools
 
         public static float GetDirectXVersion()
         {
-            string tmpFile = Environment.GetEnvironmentVariable("temp") + @"\dxdiag.tmp";
+            string outputFile = Environment.GetEnvironmentVariable("temp") + @"\dxdiag.tmp";
 
             try
             {
@@ -49,25 +53,32 @@ namespace BFtools
                     StartInfo =
                     {
                         FileName = "dxdiag.exe",
-                        Arguments = "/t " + tmpFile
+                        Arguments = "/t " + outputFile
                     }
                 };
                 dxdiag.Start();
                 dxdiag.WaitForExit();
 
-                if (File.Exists(tmpFile))
+                if (File.Exists(outputFile))
                 {
-                    string[] lines = File.ReadAllLines(tmpFile);
-                    File.Delete(tmpFile);
+                    string[] lines = File.ReadAllLines(outputFile);
+                    File.Delete(outputFile);
 
                     foreach (string line in lines)
                     {
-                        if (line.Contains("DirectX 10")) return 10;
-                        if (line.Contains("DirectX 11")) return 11;
-                        if (line.Contains("DirectX 11.1")) return 11.1f;
-                        if (line.Contains("DirectX 11.2")) return 11.2f;
-                        if (line.Contains("DirectX 11.3")) return 11.3f;
-                        if (line.Contains("DirectX 12")) return 12;
+	                    if (line.Contains("DirectX "))
+						{
+							if (line.Contains("DirectX 9")) return 9;
+		                    if (line.Contains("DirectX 10")) return 10;
+		                    if (line.Contains("DirectX 11")) return 11;
+		                    if (line.Contains("DirectX 11.1")) return 11.1f;
+		                    if (line.Contains("DirectX 11.2")) return 11.2f;
+		                    if (line.Contains("DirectX 11.3")) return 11.3f;
+							if (line.Contains("DirectX 12")) return 12;
+							if (line.Contains("DirectX 12.1")) return 12.1f;
+							if (line.Contains("DirectX 12.2")) return 12.2f;
+							if (line.Contains("DirectX 13")) return 13;
+	                    }
                     }
                 }
             }

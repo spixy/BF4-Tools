@@ -8,30 +8,34 @@ namespace BFtools
 {
     public partial class Form1 : Form
     {
-        private string BFdirectory = "";
-        private string BFsettings = "";
-        private RegistryKey key;
+		private readonly string userProfilePath = Environment.GetEnvironmentVariable("userprofile") + @"\Documents\Battlefield 4\settings\PROF_SAVE_profile";
+		private readonly string screenshotsPath = Environment.GetEnvironmentVariable("userprofile") + @"\Documents\Battlefield 4\screenshots";
+		private readonly string tempSettings = Environment.GetEnvironmentVariable("temp") + @"\bf.ini";
+
+		private readonly RegistryKey key;
+
+		private string BFdirectory = "";
 
         public Form1()
         {
-            InitializeComponent();
+			InitializeComponent();
+
+			key = Utility.GetRegistryKey();
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
             MaximumSize = Size;
-            comboBox2.SelectedIndex = 1;
-            comboBox4.SelectedIndex = 0;
 
-            comboBox3.SelectedIndex = 0;
+			comboBox2.SelectedIndex = 1;
+			comboBox3.SelectedIndex = 0;
+            comboBox4.SelectedIndex = 0;
             comboBox5.SelectedIndex = 0;
             comboBox6.SelectedIndex = 0;
-
-            BFsettings = Environment.GetEnvironmentVariable("userprofile") + @"\Documents\Battlefield 4\settings\PROF_SAVE_profile";
-
-            if (File.Exists(BFsettings))
+			
+            if (File.Exists(userProfilePath))
             {
-                string[] lines = File.ReadAllLines(BFsettings);
+                string[] lines = File.ReadAllLines(userProfilePath);
 
                 foreach (string line in lines)
                 {
@@ -43,14 +47,13 @@ namespace BFtools
                 }
             }
 
-            if (File.Exists(Environment.GetEnvironmentVariable("temp") + @"\bf4.ini"))
+			if (File.Exists(tempSettings))
             {
-                string[] lines = File.ReadAllLines(Environment.GetEnvironmentVariable("temp") + @"\bf4.ini");
+				string[] lines = File.ReadAllLines(tempSettings);
                 BFdirectory = lines[0];
-                if (File.Exists(BFdirectory + @"\user.cfg")) ReadCFG();
+                if (File.Exists(BFdirectory + @"\user.cfg"))
+					ReadCFG();
             }
-
-            key = Utility.GetRegistryKey();
 
             if (key != null)
             {
@@ -125,14 +128,10 @@ namespace BFtools
         {
             using (StreamWriter file = new StreamWriter(BFdirectory + @"\user.cfg", false))
             {
-                file.WriteLine("GameTime.MaxVariableFps " + numericUpDown1.Value);
-
-                if (comboBox4.SelectedIndex != 0)
-                    file.WriteLine("RenderDevice.ForceRenderAheadLimit " + (comboBox4.SelectedIndex - 1));
-
-                file.WriteLine(checkBox4.Checked ? "UI.DrawEnable 1" : "UI.DrawEnable 0");
-                file.WriteLine(checkBox1.Checked ? "PerfOverlay.DrawFPS 1" : "PerfOverlay.DrawFPS 0");
-                file.WriteLine(checkBox8.Checked ? "PerfOverlay.DrawGraph 1" : "PerfOverlay.DrawGraph 0");
+				file.WriteLine("GameTime.MaxVariableFps " + numericUpDown1.Value);
+				file.WriteLine("UI.DrawEnable " + checkBox4.Checked.ToInt());
+				file.WriteLine("PerfOverlay.DrawFPS " + checkBox1.Checked.ToInt());
+				file.WriteLine("PerfOverlay.DrawGraph " + checkBox8.Checked.ToInt());
 
                 switch (checkBox7.CheckState)
                 {
@@ -174,9 +173,12 @@ namespace BFtools
                         break;
                 }
 
-                file.WriteLine(checkBox5.Checked ? "WorldRender.DxDeferredCsPathEnable 1" : "WorldRender.DxDeferredCsPathEnable 0");
-                file.WriteLine(checkBox9.Checked ? "WorldRender.TransparencyShadowmapsEnable 1" : "WorldRender.TransparencyShadowmapsEnable 0");
-                file.WriteLine(checkBox2.Checked ? "WorldRender.SpotlightShadowmapEnable 1" : "WorldRender.SpotlightShadowmapEnable 0");
+				if (comboBox4.SelectedIndex != 0)
+					file.WriteLine("RenderDevice.ForceRenderAheadLimit " + (comboBox4.SelectedIndex - 1));
+
+				file.WriteLine("WorldRender.DxDeferredCsPathEnable " + checkBox5.Checked.ToInt());
+				file.WriteLine("WorldRender.TransparencyShadowmapsEnable " + checkBox9.Checked.ToInt());
+				file.WriteLine("WorldRender.SpotlightShadowmapEnable " + checkBox2.Checked.ToInt());
 
                 switch (comboBox2.SelectedIndex)
                 {
@@ -220,15 +222,15 @@ namespace BFtools
             if (File.Exists(BFdirectory + @"\user.cfg"))
                 File.Delete(BFdirectory + @"\user.cfg");
 
-            if (File.Exists(Environment.GetEnvironmentVariable("temp") + @"\bf4.ini"))
-                File.Delete(Environment.GetEnvironmentVariable("temp") + @"\bf4.ini");
+			if (File.Exists(tempSettings))
+				File.Delete(tempSettings);
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
             // kill Origin
             Process[] Origins = Process.GetProcessesByName("Origin");
-            Utility.KilProcesses(Origins);
+            Utility.KillProcesses(Origins);
 
             // restart BF4
             Process BFstart = new Process();
@@ -237,7 +239,7 @@ namespace BFtools
             if (Bf4.Length > 0)
             {
                 BFstart.StartInfo = Bf4[0].StartInfo;
-                Utility.KilProcesses(Bf4, true);
+                Utility.KillProcesses(Bf4, true);
             }
             else
             {
@@ -255,19 +257,18 @@ namespace BFtools
             {
                 if (line.Contains("GameTime.MaxVariableFps"))
                 {
-                    string s = line.Replace("GameTime.MaxVariableFps ", "");
-                    if (s.Contains("."))
-                    {
-                        numericUpDown1.Value = Convert.ToDecimal(s.Remove(s.LastIndexOf('.'), s.Length - s.LastIndexOf('.')));
-                    }
-                    else
-                    {
-                        numericUpDown1.Value = Convert.ToDecimal(s);
-                    }
+					string value = line.Replace("GameTime.MaxVariableFps ", "");
+
+					string fps = value.Contains(".")
+						? value.Remove(value.LastIndexOf('.'), value.Length - value.LastIndexOf('.'))
+						: value;
+
+					numericUpDown1.Value = Convert.ToDecimal(fps);
                 }
                 else if (line.Contains("RenderDevice.ForceRenderAheadLimit"))
-                {
-                    comboBox4.SelectedIndex = Convert.ToInt32(line.Replace("RenderDevice.ForceRenderAheadLimit ", "")) + 1;
+				{
+					string value = line.Replace("RenderDevice.ForceRenderAheadLimit ", "");
+                    comboBox4.SelectedIndex = Convert.ToInt32(value) + 1;
                 }
 
                 else if (line.Contains("PerfOverlay.DrawFPS 1")) checkBox1.Checked = true;
@@ -302,7 +303,8 @@ namespace BFtools
 
         private void checkBox2_CheckedChanged(object sender, EventArgs e)
         {
-            if (!checkBox2.Checked) comboBox2.SelectedIndex = 0;
+            if (!checkBox2.Checked)
+				comboBox2.SelectedIndex = 0;
         }
 
         private void button6_Click(object sender, EventArgs e)
@@ -325,44 +327,8 @@ namespace BFtools
 
         private void button7_Click(object sender, EventArgs e)
         {
-            Process.Start("explorer.exe", Environment.GetEnvironmentVariable("userprofile") + @"\Documents\Battlefield 4\screenshots");
+			Process.Start("explorer.exe", screenshotsPath);
         }
-
-        /*public static void StartService(ServiceController service)
-        {
-            try
-            {
-                TimeSpan timeout = TimeSpan.FromMilliseconds(1000);
-                service.Start();
-                service.WaitForStatus(ServiceControllerStatus.Running, timeout);
-            }
-            catch
-            {
-                // ignored
-            }
-        }
-
-        public static void RestartService(ServiceController service)
-        {
-            try
-            {
-                int millisec1 = Environment.TickCount;
-                TimeSpan timeout = TimeSpan.FromMilliseconds(1000);
-
-                service.Stop();
-                service.WaitForStatus(ServiceControllerStatus.Stopped, timeout);
-
-                int millisec2 = Environment.TickCount;
-                timeout = TimeSpan.FromMilliseconds(1000 - (millisec2 - millisec1));
-
-                service.Start();
-                service.WaitForStatus(ServiceControllerStatus.Running, timeout);
-            }
-            catch
-            {
-                // ignored
-            }
-        }*/
 
         private void button8_Click(object sender, EventArgs e)
         {
